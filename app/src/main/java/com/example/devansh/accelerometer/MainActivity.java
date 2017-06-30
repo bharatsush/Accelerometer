@@ -1,6 +1,5 @@
 package com.example.devansh.accelerometer;
 
-
 import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.content.Context;
@@ -10,6 +9,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.YAxis;
@@ -17,21 +17,16 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
-import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
-import com.github.mikephil.charting.utils.ColorTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-
-
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
+public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
-    private float deltaX;
-    private float deltaY;
-    private float deltaZ;
+    protected float deltaX;
+    protected float deltaY;
+    protected float deltaZ;
     private long lastUpdate=0;
+    Toast toa;
 
     private TextView currentX, currentY, currentZ;
     private LineChart chart;
@@ -43,8 +38,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         initializeViews();
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-
-
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         LineData data = new LineData();
@@ -58,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         currentY = (TextView) findViewById(R.id.currentY);
         currentZ = (TextView) findViewById(R.id.currentZ);
         chart = (LineChart) findViewById(R.id.chart);
-    }
+        }
 
     //onResume() register the accelerometer for listening the events
     protected void onResume() {
@@ -70,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onPause() {
         super.onPause();
         sensorManager.unregisterListener(this);
+        toa.cancel();
     }
 
     @Override
@@ -84,18 +78,36 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         deltaZ = event.values[2];
         long curTime = System.currentTimeMillis();
         long diffTime = (curTime - lastUpdate);
+        DatabaseHelper object = DatabaseHelper.getInstance(this);
 
         // only allow one update every POLL_FREQUENCY.
-        if(diffTime > 500) {
+        if(diffTime > 1000) {
             lastUpdate = curTime;
+            displayCurrentValues();
+            DatabaseHelper.insert in = object.new insert(deltaX,deltaY,deltaZ);
+            Thread t = new Thread(in);
+            t.start();
+            DatabaseHelper.getAll ge = object.new getAll();
+            Thread t1 = new Thread(ge);
+            t1.start();
+            float[] a = object.result;
+            addEntry(a[0],a[1],a[2]);
+            toa = Toast.makeText(this, "X: " + a[0] + " Y: " + a[1] + " Z: " + a[2] + " id: " + object.pid + " Row: " + object.rowid + " No: " + object.cnt,
+                    Toast.LENGTH_SHORT);
+            toa.show();
 
-            addEntry(deltaX, deltaY, deltaZ);
+            if(object.cnt>=199){
+                DatabaseHelper.deleteFirstRow de = object.new deleteFirstRow();
+                Thread t2 = new Thread(de);
+                t2.start();
+            }
         }
-        // display the current x,y,z accelerometer values
-        displayCurrentValues();
+
+
+
     }
 
-    private void addEntry(float deltaX, float deltaY, float deltaZ) {
+    private void addEntry(float X, float Y, float Z) {
         LineData data = chart.getData();
         if (data != null) {
 
@@ -116,9 +128,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 data.addDataSet(zData);
             }
 
-            data.addEntry(new Entry(xData.getEntryCount(),deltaX), 0);
-            data.addEntry(new Entry(yData.getEntryCount(),deltaY), 1);
-            data.addEntry(new Entry(zData.getEntryCount(),deltaZ), 2);
+            data.addEntry(new Entry(xData.getEntryCount(),X), 0);
+            data.addEntry(new Entry(yData.getEntryCount(),Y), 1);
+            data.addEntry(new Entry(zData.getEntryCount(),Z), 2);
 
             chart.notifyDataSetChanged();
 
