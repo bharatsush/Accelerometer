@@ -87,20 +87,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             DatabaseHelper.insert in = object.new insert(deltaX,deltaY,deltaZ);
             Thread t = new Thread(in);
             t.start();
-            DatabaseHelper.getAll ge = object.new getAll();
-            Thread t1 = new Thread(ge);
+           DatabaseHelper.getAll geal = object.new getAll();
+            Thread t1 = new Thread(geal);
             t1.start();
             float[] a = object.result;
             addEntry(a[0],a[1],a[2]);
-            toa = Toast.makeText(this, "X: " + a[0] + " Y: " + a[1] + " Z: " + a[2] + " id: " + object.pid + " Row: " + object.rowid + " No: " + object.cnt,
+            toa = Toast.makeText(this, "X: " + a[0] + " Y: " + a[1] + " Z: " + a[2],
                     Toast.LENGTH_SHORT);
             toa.show();
-
+            DatabaseHelper.getsome geso = object.new getsome();
+            Thread t2 = new Thread(geso);
+            t2.start();
             if(object.cnt>=199){
                 DatabaseHelper.deleteFirstRow de = object.new deleteFirstRow();
-                Thread t2 = new Thread(de);
-                t2.start();
+                Thread t3 = new Thread(de);
+                t3.start();
             }
+
         }
 
 
